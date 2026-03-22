@@ -192,23 +192,28 @@ function App() {
     const wasEditMode = isEditMode;
     setIsEditMode(false);
 
-    await new Promise((resolve) => window.setTimeout(resolve, 300));
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, 300));
 
-    const canvas = await html2canvas(captureRef.current, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      windowWidth: 1800,
-      height: captureRef.current.scrollHeight + 20,
-    });
+      const canvas = await html2canvas(captureRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: 1800,
+        height: captureRef.current.scrollHeight + 20,
+      });
 
-    const link = document.createElement('a');
-    link.download = `so-do-lop-[${newId}].png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-
-    if (wasEditMode) setIsEditMode(true);
-    setDownloading(false);
+      const link = document.createElement('a');
+      link.download = `so-do-lop-[${newId}].png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Không thể xuất ảnh sơ đồ lớp.', error);
+      window.alert('Không thể xuất ảnh. Vui lòng thử lại.');
+    } finally {
+      setIsEditMode(wasEditMode);
+      setDownloading(false);
+    }
   };
 
   const SeatItem = ({ seat, idx, rowKey }) => {
