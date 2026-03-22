@@ -25,5 +25,6 @@ npm run deploy:netlify
 ```
 
 Lưu ý:
-- Lệnh trên cần bạn đăng nhập Netlify CLI hoặc cung cấp token môi trường tương ứng.
+- `npm install` sẽ cài sẵn Netlify CLI vào `node_modules`, nên không cần cài `netlify` global trước khi chạy script.
+- Lệnh trên vẫn yêu cầu bạn đăng nhập Netlify CLI hoặc cung cấp token môi trường tương ứng.
 - Nếu deploy qua giao diện Netlify, chỉ cần import repo; Netlify sẽ tự dùng `npm run build` và publish thư mục `dist`.
