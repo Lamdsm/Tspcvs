@@ -194,29 +194,39 @@ function App() {
   const handleDownload = async () => {
     if (!captureRef.current) return;
 
+    const captureElement = captureRef.current;
+    const currentScrollX = window.scrollX;
+    const currentScrollY = window.scrollY;
+
     setDownloading(true);
     const newId = generateComplexID(21);
     setGeneratedId(newId);
     const wasEditMode = isEditMode;
     setIsEditMode(false);
 
-    await new Promise((resolve) => window.setTimeout(resolve, 300));
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, 300));
 
-    const canvas = await html2canvas(captureRef.current, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      windowWidth: 1800,
-      height: captureRef.current.scrollHeight + 20,
-    });
+      const canvas = await html2canvas(captureElement, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        scrollX: -currentScrollX,
+        scrollY: -currentScrollY,
+        windowWidth: document.documentElement.offsetWidth,
+        windowHeight: document.documentElement.offsetHeight,
+        width: captureElement.scrollWidth,
+        height: captureElement.scrollHeight,
+      });
 
-    const link = document.createElement('a');
-    link.download = `so-do-lop-[${newId}].png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-
-    if (wasEditMode) setIsEditMode(true);
-    setDownloading(false);
+      const link = document.createElement('a');
+      link.download = `so-do-lop-[${newId}].png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } finally {
+      if (wasEditMode) setIsEditMode(true);
+      setDownloading(false);
+    }
   };
 
   const SeatItem = ({ seat, idx, rowKey }) => {
