@@ -107,6 +107,19 @@ const generateComplexID = (length) => {
   }).join('');
 };
 
+const waitForNextPaint = (frames = 2) => new Promise((resolve) => {
+  const step = (remainingFrames) => {
+    if (remainingFrames <= 0) {
+      resolve();
+      return;
+    }
+
+    window.requestAnimationFrame(() => step(remainingFrames - 1));
+  };
+
+  step(frames);
+});
+
 function App() {
   const captureRef = useRef(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -192,23 +205,25 @@ function App() {
     const wasEditMode = isEditMode;
     setIsEditMode(false);
 
-    await new Promise((resolve) => window.setTimeout(resolve, 300));
+    try {
+      await waitForNextPaint();
 
-    const canvas = await html2canvas(captureRef.current, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      windowWidth: 1800,
-      height: captureRef.current.scrollHeight + 20,
-    });
+      const canvas = await html2canvas(captureRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: 1800,
+        height: captureRef.current.scrollHeight + 20,
+      });
 
-    const link = document.createElement('a');
-    link.download = `so-do-lop-[${newId}].png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-
-    if (wasEditMode) setIsEditMode(true);
-    setDownloading(false);
+      const link = document.createElement('a');
+      link.download = `so-do-lop-[${newId}].png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } finally {
+      if (wasEditMode) setIsEditMode(true);
+      setDownloading(false);
+    }
   };
 
   const SeatItem = ({ seat, idx, rowKey }) => {
