@@ -29,6 +29,11 @@ const createInitialRules = () => ({
   ],
 });
 
+const createMember = (name) => ({
+  id: globalThis.crypto?.randomUUID?.() ?? `member-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  name,
+});
+
 const createInitialGroups = () => [
   {
     id: 1,
@@ -38,7 +43,7 @@ const createInitialGroups = () => [
       'Nguyễn Đức Cường', 'Lâm Ngọc Huyền Diệu', 'Nguyễn Tiến Dũng',
       'Nông Trung Dũng', 'Lê Minh Đạo', 'Phạm Hải Đăng',
       'Nguyễn Ngọc Khánh Đoan', 'Đồng Thị Khánh Linh',
-    ],
+    ].map(createMember),
   },
   {
     id: 2,
@@ -47,7 +52,7 @@ const createInitialGroups = () => [
       'Nguyễn Mã Tú Giang', 'Phùng Thu Hà', 'Trần Hanh', 'Trương Thanh Hiếu',
       'Nguyễn Thị Hồng Huế', 'Hồ Tá Huy', 'Nguyễn Xuân Huy', 'Nông Gia Huy',
       'Nông Gia Huy', 'Trần Gia Huy', 'Nguyễn Kim Khánh',
-    ],
+    ].map(createMember),
   },
   {
     id: 3,
@@ -56,7 +61,7 @@ const createInitialGroups = () => [
       'Nông Nguyễn Tú Lan', 'Sầm Ngọc Lan', 'Dương Khánh Linh', 'Nguyễn Thị Ngọc Linh',
       'Nông Hoàng Linh', 'Bùi Gia Long', 'Hoàng Duy Lợi', 'Hoàng Sỹ Minh',
       'Lục Tuấn Minh', 'Nông Tuệ Minh', 'Hoàng Ngọc Bảo Nam',
-    ],
+    ].map(createMember),
   },
   {
     id: 4,
@@ -65,7 +70,7 @@ const createInitialGroups = () => [
       'Mã Linh Nga', 'Đinh Bích Ngọc', 'Lục Bảo Ngọc', 'Trần Hồng Ngọc',
       'Nông Yến Nhi', 'Nông Hoàng Phúc', 'Ngô Thu Thảo', 'Hoàng Thị Kim Thoa',
       'Lục Minh Thuận', 'Mông Thúy Trang', 'Hà Anh Tú',
-    ],
+    ].map(createMember),
   },
 ];
 
@@ -124,24 +129,27 @@ function App() {
 
   const groupOptions = useMemo(() => [1, 2, 3, 4], []);
 
-  const handleMemberChange = (groupId, index, value) => {
+  const handleMemberChange = (groupId, memberId, value) => {
     setGroups((current) => current.map((group) => (
       group.id === groupId
-        ? { ...group, members: group.members.map((member, memberIndex) => (memberIndex === index ? value : member)) }
+        ? {
+          ...group,
+          members: group.members.map((member) => (member.id === memberId ? { ...member, name: value } : member)),
+        }
         : group
     )));
   };
 
   const addMember = (groupId) => {
     setGroups((current) => current.map((group) => (
-      group.id === groupId ? { ...group, members: [...group.members, '...'] } : group
+      group.id === groupId ? { ...group, members: [...group.members, createMember('...')] } : group
     )));
   };
 
-  const removeMember = (groupId, index) => {
+  const removeMember = (groupId, memberId) => {
     setGroups((current) => current.map((group) => (
       group.id === groupId
-        ? { ...group, members: group.members.filter((_, memberIndex) => memberIndex !== index) }
+        ? { ...group, members: group.members.filter((member) => member.id !== memberId) }
         : group
     )));
   };
@@ -358,22 +366,22 @@ function App() {
                     <div className={GROUP_STYLES[group.id].panel}>
                       <div className="member-list">
                         {group.members.map((member, memberIndex) => (
-                          <div key={`${group.id}-${memberIndex}`} className="member-row">
+                          <div key={member.id} className="member-row">
                             <span className="member-index">{memberIndex + 1}.</span>
                             {isEditMode ? (
                               <div className="member-edit-wrap">
                                 <input
                                   type="text"
-                                  value={member}
-                                  onChange={(event) => handleMemberChange(group.id, memberIndex, event.target.value)}
+                                  value={member.name}
+                                  onChange={(event) => handleMemberChange(group.id, member.id, event.target.value)}
                                   className="text-input"
                                 />
-                                <button type="button" className="danger-button" onClick={() => removeMember(group.id, memberIndex)}>
+                                <button type="button" className="danger-button" onClick={() => removeMember(group.id, member.id)}>
                                   <Trash2 size={18} />
                                 </button>
                               </div>
                             ) : (
-                              <span className="member-name">{member}</span>
+                              <span className="member-name">{member.name}</span>
                             )}
                           </div>
                         ))}
