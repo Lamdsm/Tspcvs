@@ -124,26 +124,34 @@ function App() {
 
   const groupOptions = useMemo(() => [1, 2, 3, 4], []);
 
+  const updateGroupMembers = (groupId, updateMembers) => {
+    setGroups((current) => current.map((group) => {
+      if (group.id !== groupId) return group;
+
+      const nextMembers = updateMembers([...group.members]);
+      return { ...group, members: nextMembers };
+    }));
+  };
+
   const handleMemberChange = (groupId, index, value) => {
-    setGroups((current) => current.map((group) => (
-      group.id === groupId
-        ? { ...group, members: group.members.map((member, memberIndex) => (memberIndex === index ? value : member)) }
-        : group
-    )));
+    updateGroupMembers(groupId, (members) => {
+      members[index] = value;
+      return members;
+    });
   };
 
   const addMember = (groupId) => {
-    setGroups((current) => current.map((group) => (
-      group.id === groupId ? { ...group, members: [...group.members, '...'] } : group
-    )));
+    updateGroupMembers(groupId, (members) => {
+      members.push('...');
+      return members;
+    });
   };
 
   const removeMember = (groupId, index) => {
-    setGroups((current) => current.map((group) => (
-      group.id === groupId
-        ? { ...group, members: group.members.filter((_, memberIndex) => memberIndex !== index) }
-        : group
-    )));
+    updateGroupMembers(groupId, (members) => {
+      members.splice(index, 1);
+      return members;
+    });
   };
 
   const handleSeatingChange = (rowKey, index, field, value) => {
