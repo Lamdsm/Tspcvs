@@ -6,9 +6,13 @@ import {
   Edit2,
   Plus,
   RefreshCw,
+  RotateCcw,
   Save,
   Trash2,
+  Upload,
 } from 'lucide-react';
+
+const STORAGE_KEY = 'tspcvs-classroom-layout';
 
 const GROUP_STYLES = {
   1: { seat: 'seat seat-pink', badge: 'badge badge-pink', panel: 'group-panel panel-pink' },
@@ -86,6 +90,45 @@ const generateInitialSeating = () => {
   return { row1, row2 };
 };
 
+const createDefaultData = () => ({
+  rules: createInitialRules(),
+  groups: createInitialGroups(),
+  seating: generateInitialSeating(),
+  generatedId: '',
+});
+
+const isValidLayoutData = (value) => (
+  Boolean(value)
+  && typeof value === 'object'
+  && value.rules
+  && typeof value.rules.title === 'string'
+  && Array.isArray(value.rules.notes)
+  && Array.isArray(value.groups)
+  && value.groups.every((group) => group && typeof group.id === 'number' && typeof group.name === 'string' && Array.isArray(group.members))
+  && value.seating
+  && Array.isArray(value.seating.row1)
+  && Array.isArray(value.seating.row2)
+);
+
+const loadInitialData = () => {
+  if (typeof window === 'undefined') {
+    return createDefaultData();
+  }
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return createDefaultData();
+
+    const parsed = JSON.parse(raw);
+    return isValidLayoutData(parsed)
+      ? { ...createDefaultData(), ...parsed }
+      : createDefaultData();
+  } catch (error) {
+    console.error('Không thể đọc dữ liệu đã lưu.', error);
+    return createDefaultData();
+  }
+};
+
 const generateComplexID = (length) => {
   const pools = {
     latin: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
@@ -109,11 +152,13 @@ const generateComplexID = (length) => {
 
 function App() {
   const captureRef = useRef(null);
+  const importInputRef = useRef(null);
+  const initialData = useMemo(() => loadInitialData(), []);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [generatedId, setGeneratedId] = useState('');
-  const [rules, setRules] = useState(createInitialRules);
-  const [groups, setGroups] = useState(createInitialGroups);
-  const [seating, setSeating] = useState(generateInitialSeating);
+  const [generatedId, setGeneratedId] = useState(initialData.generatedId);
+  const [rules, setRules] = useState(initialData.rules);
+  const [groups, setGroups] = useState(initialData.groups);
+  const [seating, setSeating] = useState(initialData.seating);
   const [swapSource, setSwapSource] = useState(1);
   const [swapTarget, setSwapTarget] = useState(3);
   const [downloading, setDownloading] = useState(false);
@@ -122,7 +167,74 @@ function App() {
     document.title = 'Sơ đồ lớp chào cờ';
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const dataToPersist = { rules, groups, seating, generatedId };
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToPersist));
+  }, [generatedId, groups, rules, seating]);
+
   const groupOptions = useMemo(() => [1, 2, 3, 4], []);
+
+  const resetToDefaults = () => {
+    const defaultData = createDefaultData();
+    setRules(defaultData.rules);
+    setGroups(defaultData.groups);
+    setSeating(defaultData.seating);
+    setGeneratedId(defaultData.generatedId);
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+  };
+
+  const exportAsJson = () => {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      rules,
+      groups,
+      seating,
+      generatedId,
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'so-do-lop-data.json';
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const importFromJson = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const nextData = {
+        rules: parsed.rules,
+        groups: parsed.groups,
+        seating: parsed.seating,
+        generatedId: typeof parsed.generatedId === 'string' ? parsed.generatedId : '',
+      };
+
+      if (!isValidLayoutData(nextData)) {
+        window.alert('File JSON không đúng định dạng dữ liệu của ứng dụng.');
+        return;
+      }
+
+      setRules(nextData.rules);
+      setGroups(nextData.groups);
+      setSeating(nextData.seating);
+      setGeneratedId(nextData.generatedId);
+    } catch (error) {
+      console.error('Không thể import JSON.', error);
+      window.alert('Không thể đọc file JSON. Vui lòng kiểm tra lại nội dung file.');
+    } finally {
+      event.target.value = '';
+    }
+  };
 
   const handleMemberChange = (groupId, index, value) => {
     setGroups((current) => current.map((group) => (
@@ -243,14 +355,15 @@ function App() {
           <p className="eyebrow">Static React app • pinned package versions • no floating CDN URL</p>
           <h1>Sơ đồ lớp chào cờ</h1>
           <p className="hero-copy">
-            Trang web này chạy hoàn toàn bằng React + Vite, dùng dependency cài qua npm với phiên bản khóa cứng
-            để tránh lỗi do URL CDN tự thay đổi theo thời gian.
+            Dữ liệu hiện được tự động lưu trong localStorage của trình duyệt và có thể export/import JSON
+            để tránh mất hết nội dung khi refresh trang hoặc chuyển máy.
           </p>
         </div>
         <div className="hero-card">
           <strong>Triển khai public</strong>
           <p>Build đầu ra nằm trong thư mục <code>dist/</code> nên có thể deploy lên Vercel, Netlify, Cloudflare Pages hoặc Surge.</p>
           <p className="generated-id">ID ảnh gần nhất: <span>{generatedId || 'Chưa tạo'}</span></p>
+          <p className="storage-note">Dữ liệu được lưu tự động trên trình duyệt hiện tại sau mỗi thay đổi.</p>
         </div>
       </div>
 
@@ -271,17 +384,38 @@ function App() {
           </div>
         )}
 
-        <div className="control-row">
-          <button type="button" onClick={handleDownload} className="primary-button">
-            <Download size={22} /> {downloading ? 'Đang xuất...' : 'Tải ảnh'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsEditMode((current) => !current)}
-            className={`primary-button ${isEditMode ? 'success' : 'secondary'}`}
-          >
-            {isEditMode ? <><Save size={22} /> Lưu lại</> : <><Edit2 size={22} /> Sửa đổi</>}
-          </button>
+        <div className="toolbar-panel">
+          <div className="control-row control-row-wrap">
+            <button type="button" onClick={handleDownload} className="primary-button">
+              <Download size={22} /> {downloading ? 'Đang xuất ảnh...' : 'Tải ảnh'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditMode((current) => !current)}
+              className={`primary-button ${isEditMode ? 'success' : 'secondary'}`}
+            >
+              {isEditMode ? <><Save size={22} /> Lưu lại</> : <><Edit2 size={22} /> Sửa đổi</>}
+            </button>
+          </div>
+
+          <div className="control-row control-row-wrap secondary-actions">
+            <button type="button" className="ghost-button" onClick={exportAsJson}>
+              <Download size={18} /> Export JSON
+            </button>
+            <button type="button" className="ghost-button" onClick={() => importInputRef.current?.click()}>
+              <Upload size={18} /> Import JSON
+            </button>
+            <button type="button" className="ghost-button" onClick={resetToDefaults}>
+              <RotateCcw size={18} /> Khôi phục mặc định
+            </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json"
+              className="file-input-hidden"
+              onChange={importFromJson}
+            />
+          </div>
         </div>
       </div>
 
