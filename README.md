@@ -25,5 +25,6 @@ npm run deploy:netlify
 ```
 
 Lưu ý:
-- Lệnh trên cần bạn đăng nhập Netlify CLI hoặc cung cấp token môi trường tương ứng.
+- Repo đã khai báo `netlify-cli` trong `devDependencies`, nên `npm run deploy:netlify` dùng CLI cục bộ của dự án và không cần cài `netlify` toàn cục.
+- Lệnh trên vẫn cần bạn đăng nhập Netlify CLI hoặc cung cấp token môi trường tương ứng.
 - Nếu deploy qua giao diện Netlify, chỉ cần import repo; Netlify sẽ tự dùng `npm run build` và publish thư mục `dist`.
