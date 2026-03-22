@@ -109,6 +109,7 @@ const generateComplexID = (length) => {
 
 function App() {
   const captureRef = useRef(null);
+  const memberInputRefs = useRef({});
   const [isEditMode, setIsEditMode] = useState(false);
   const [generatedId, setGeneratedId] = useState('');
   const [rules, setRules] = useState(createInitialRules);
@@ -117,10 +118,22 @@ function App() {
   const [swapSource, setSwapSource] = useState(1);
   const [swapTarget, setSwapTarget] = useState(3);
   const [downloading, setDownloading] = useState(false);
+  const [pendingMemberFocus, setPendingMemberFocus] = useState(null);
 
   useEffect(() => {
     document.title = 'Sơ đồ lớp chào cờ';
   }, []);
+
+  useEffect(() => {
+    if (!isEditMode || !pendingMemberFocus) return;
+
+    const input = memberInputRefs.current[`${pendingMemberFocus.groupId}-${pendingMemberFocus.memberIndex}`];
+    if (!input) return;
+
+    input.focus();
+    input.select();
+    setPendingMemberFocus(null);
+  }, [groups, isEditMode, pendingMemberFocus]);
 
   const groupOptions = useMemo(() => [1, 2, 3, 4], []);
 
@@ -133,8 +146,12 @@ function App() {
   };
 
   const addMember = (groupId) => {
+    const targetGroup = groups.find((group) => group.id === groupId);
+    if (!targetGroup) return;
+
+    setPendingMemberFocus({ groupId, memberIndex: targetGroup.members.length });
     setGroups((current) => current.map((group) => (
-      group.id === groupId ? { ...group, members: [...group.members, '...'] } : group
+      group.id === groupId ? { ...group, members: [...group.members, ''] } : group
     )));
   };
 
@@ -363,6 +380,13 @@ function App() {
                             {isEditMode ? (
                               <div className="member-edit-wrap">
                                 <input
+                                  ref={(element) => {
+                                    if (element) {
+                                      memberInputRefs.current[`${group.id}-${memberIndex}`] = element;
+                                    } else {
+                                      delete memberInputRefs.current[`${group.id}-${memberIndex}`];
+                                    }
+                                  }}
                                   type="text"
                                   value={member}
                                   onChange={(event) => handleMemberChange(group.id, memberIndex, event.target.value)}
