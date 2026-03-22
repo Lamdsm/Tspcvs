@@ -75,16 +75,18 @@ const generateInitialSeating = () => {
 
   for (let i = 1; i <= 23; i += 1) {
     const groupId = i <= 11 ? 3 : 1;
-    row1.push({ id: `r1-${i}`, num: i, label: `Nhóm ${groupId}`, groupId });
+    row1.push({ id: `r1-${i}`, num: i, label: getSeatLabel(groupId), groupId });
   }
 
   for (let i = 1; i <= 22; i += 1) {
     const groupId = i <= 11 ? 4 : 2;
-    row2.push({ id: `r2-${i}`, num: i, label: `Nhóm ${groupId}`, groupId });
+    row2.push({ id: `r2-${i}`, num: i, label: getSeatLabel(groupId), groupId });
   }
 
   return { row1, row2 };
 };
+
+const getSeatLabel = (groupId) => `Nhóm ${groupId}`;
 
 const generateComplexID = (length) => {
   const pools = {
@@ -146,12 +148,6 @@ function App() {
     )));
   };
 
-  const handleSeatingChange = (rowKey, index, field, value) => {
-    setSeating((current) => ({
-      ...current,
-      [rowKey]: current[rowKey].map((seat, seatIndex) => (seatIndex === index ? { ...seat, [field]: value } : seat)),
-    }));
-  };
 
   const cycleGroupForSeat = (rowKey, index) => {
     setSeating((current) => ({
@@ -159,7 +155,7 @@ function App() {
       [rowKey]: current[rowKey].map((seat, seatIndex) => {
         if (seatIndex !== index) return seat;
         const nextGroup = seat.groupId === 4 ? 1 : seat.groupId + 1;
-        return { ...seat, groupId: nextGroup, label: `Nhóm ${nextGroup}` };
+        return { ...seat, groupId: nextGroup, label: getSeatLabel(nextGroup) };
       }),
     }));
   };
@@ -169,10 +165,10 @@ function App() {
 
     const swapSeat = (seat) => {
       if (seat.groupId === swapSource) {
-        return { ...seat, groupId: swapTarget, label: seat.label === `Nhóm ${swapSource}` ? `Nhóm ${swapTarget}` : seat.label };
+        return { ...seat, groupId: swapTarget, label: getSeatLabel(swapTarget) };
       }
       if (seat.groupId === swapTarget) {
-        return { ...seat, groupId: swapSource, label: seat.label === `Nhóm ${swapTarget}` ? `Nhóm ${swapSource}` : seat.label };
+        return { ...seat, groupId: swapSource, label: getSeatLabel(swapSource) };
       }
       return seat;
     };
@@ -213,6 +209,7 @@ function App() {
 
   const SeatItem = ({ seat, idx, rowKey }) => {
     const seatClassName = GROUP_STYLES[seat.groupId]?.seat ?? 'seat';
+    const seatLabel = getSeatLabel(seat.groupId);
 
     return (
       <div className={seatClassName}>
@@ -221,16 +218,17 @@ function App() {
           <div className="seat-edit-wrap">
             <input
               type="text"
-              value={seat.label}
-              onChange={(event) => handleSeatingChange(rowKey, idx, 'label', event.target.value)}
+              value={seatLabel}
+              readOnly
               className="text-input"
+              aria-label={`Nhóm hiện tại của chỗ ${seat.num}`}
             />
-            <button type="button" onClick={() => cycleGroupForSeat(rowKey, idx)} className="icon-button">
+            <button type="button" onClick={() => cycleGroupForSeat(rowKey, idx)} className="icon-button" aria-label={`Đổi nhóm cho chỗ ${seat.num}`}>
               <RefreshCw size={16} />
             </button>
           </div>
         ) : (
-          <span className="seat-label">{seat.label}</span>
+          <span className="seat-label">{seatLabel}</span>
         )}
       </div>
     );
