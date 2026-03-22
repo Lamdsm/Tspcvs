@@ -189,6 +189,17 @@ function App() {
       row1: current.row1.map(swapSeat),
       row2: current.row2.map(swapSeat),
     }));
+
+    setGroups((current) => {
+      const sourceGroup = current.find((group) => group.id === swapSource);
+      const targetGroup = current.find((group) => group.id === swapTarget);
+
+      return current.map((group) => {
+        if (group.id === swapSource) return targetGroup ?? group;
+        if (group.id === swapTarget) return sourceGroup ?? group;
+        return group;
+      });
+    });
   };
 
   const handleDownload = async () => {
