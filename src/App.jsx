@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import {
   ArrowRightLeft,
@@ -107,6 +107,45 @@ const generateComplexID = (length) => {
   }).join('');
 };
 
+
+const MemberItem = memo(function MemberItem({
+  groupId,
+  member,
+  memberIndex,
+  isEditMode,
+  onMemberChange,
+  onRemoveMember,
+}) {
+  const handleChange = useCallback((event) => {
+    onMemberChange(groupId, memberIndex, event.target.value);
+  }, [groupId, memberIndex, onMemberChange]);
+
+  const handleRemove = useCallback(() => {
+    onRemoveMember(groupId, memberIndex);
+  }, [groupId, memberIndex, onRemoveMember]);
+
+  return (
+    <div className="member-row">
+      <span className="member-index">{memberIndex + 1}.</span>
+      {isEditMode ? (
+        <div className="member-edit-wrap">
+          <input
+            type="text"
+            value={member}
+            onChange={handleChange}
+            className="text-input"
+          />
+          <button type="button" className="danger-button" onClick={handleRemove}>
+            <Trash2 size={18} />
+          </button>
+        </div>
+      ) : (
+        <span className="member-name">{member}</span>
+      )}
+    </div>
+  );
+});
+
 function App() {
   const captureRef = useRef(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -124,27 +163,27 @@ function App() {
 
   const groupOptions = useMemo(() => [1, 2, 3, 4], []);
 
-  const handleMemberChange = (groupId, index, value) => {
+  const handleMemberChange = useCallback((groupId, index, value) => {
     setGroups((current) => current.map((group) => (
       group.id === groupId
         ? { ...group, members: group.members.map((member, memberIndex) => (memberIndex === index ? value : member)) }
         : group
     )));
-  };
+  }, []);
 
-  const addMember = (groupId) => {
+  const addMember = useCallback((groupId) => {
     setGroups((current) => current.map((group) => (
       group.id === groupId ? { ...group, members: [...group.members, '...'] } : group
     )));
-  };
+  }, []);
 
-  const removeMember = (groupId, index) => {
+  const removeMember = useCallback((groupId, index) => {
     setGroups((current) => current.map((group) => (
       group.id === groupId
         ? { ...group, members: group.members.filter((_, memberIndex) => memberIndex !== index) }
         : group
     )));
-  };
+  }, []);
 
   const handleSeatingChange = (rowKey, index, field, value) => {
     setSeating((current) => ({
@@ -358,24 +397,15 @@ function App() {
                     <div className={GROUP_STYLES[group.id].panel}>
                       <div className="member-list">
                         {group.members.map((member, memberIndex) => (
-                          <div key={`${group.id}-${memberIndex}`} className="member-row">
-                            <span className="member-index">{memberIndex + 1}.</span>
-                            {isEditMode ? (
-                              <div className="member-edit-wrap">
-                                <input
-                                  type="text"
-                                  value={member}
-                                  onChange={(event) => handleMemberChange(group.id, memberIndex, event.target.value)}
-                                  className="text-input"
-                                />
-                                <button type="button" className="danger-button" onClick={() => removeMember(group.id, memberIndex)}>
-                                  <Trash2 size={18} />
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="member-name">{member}</span>
-                            )}
-                          </div>
+                          <MemberItem
+                            key={`${group.id}-${memberIndex}`}
+                            groupId={group.id}
+                            member={member}
+                            memberIndex={memberIndex}
+                            isEditMode={isEditMode}
+                            onMemberChange={handleMemberChange}
+                            onRemoveMember={removeMember}
+                          />
                         ))}
                         {isEditMode && (
                           <div className="member-add-row">
